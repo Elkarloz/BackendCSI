@@ -1,0 +1,48 @@
+---
+description: "Reglas generales del proyecto educativo CSI1 - Sistema de Misión Espacial"
+globs: ["**/*.js", "**/*.jsx", "**/*.json", "**/*.md", "**/*.sql"]
+alwaysApply: true
+---
+
+# Reglas Generales del Proyecto CSI1
+
+## Propósito del Proyecto
+- Sistema educativo de misión espacial con trivia y ejercicios
+- Arquitectura full-stack: Backend Node.js/Express + Frontend React
+- Base de datos MySQL con Sequelize ORM
+- Sistema de autenticación JWT
+- Gestión de usuarios, planetas, ejercicios y progreso estudiantil
+
+## Estructura del Proyecto
+- **Backend**: API REST con Express.js, autenticación JWT, base de datos MySQL
+- **Frontend**: Aplicación React con Vite, arquitectura MVC, routing
+- **Base de Datos**: MySQL con esquemas para usuarios, planetas, ejercicios, niveles
+- **Documentación**: README, diagramas de arquitectura, documentación de rutas
+
+## Convenciones Generales
+- Usar inglés para nombres de variables, funciones y comentarios
+- Implementar manejo de errores consistente
+- Seguir principios SOLID
+- Mantener código limpio y documentado
+- Usar versionado semántico
+
+## Seguridad
+- Validar todas las entradas de usuario
+- Implementar autenticación y autorización
+- Usar HTTPS en producción
+- Sanitizar datos de entrada
+- Implementar rate limiting
+
+## Performance
+- Optimizar consultas de base de datos
+- Implementar caching cuando sea apropiado
+- Minimizar bundle size del frontend
+- Usar lazy loading para componentes
+- Implementar paginación para listas grandes
+
+## Testing
+- Escribir tests unitarios e integración
+- Mantener cobertura de tests alta
+- Usar mocks para dependencias externas
+- Implementar tests de API
+- Automatizar testing en CI/CD

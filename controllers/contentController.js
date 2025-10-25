@@ -39,6 +39,14 @@ class ContentController {
         });
       }
 
+      console.log('📄 ContentController.createContent() - Creando contenido con datos:', {
+        title: title.trim(),
+        description: description ? description.trim() : '',
+        resourceType,
+        resourceUrl: resourceUrl.trim(),
+        createdBy: req.user.id
+      });
+
       const content = await Content.create({
         title: title.trim(),
         description: description ? description.trim() : '',
@@ -46,6 +54,8 @@ class ContentController {
         resourceUrl: resourceUrl.trim(),
         createdBy: req.user.id
       });
+
+      console.log('📄 ContentController.createContent() - Contenido creado:', content);
 
       res.status(201).json({
         success: true,

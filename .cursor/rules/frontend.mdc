@@ -1,0 +1,97 @@
+---
+description: "Reglas específicas para el desarrollo del frontend React/Vite"
+globs: ["Fronted/**/*.jsx", "Fronted/**/*.js", "Fronted/**/*.css", "Fronted/**/*.json", "Fronted/src/**"]
+alwaysApply: true
+---
+
+# Frontend Development Rules
+
+## Arquitectura y Estructura
+- Seguir el patrón MVC (Model-View-Controller) en React
+- Mantener separación clara entre componentes, servicios y controladores
+- Usar React Router para navegación
+- Implementar arquitectura de componentes reutilizables
+- Organizar código en carpetas por funcionalidad
+
+## Componentes React
+- Usar functional components con hooks
+- Implementar React.memo para optimización cuando sea necesario
+- Usar PropTypes o TypeScript para validación de props
+- Mantener componentes pequeños y enfocados
+- Implementar Error Boundaries para manejo de errores
+
+## Estado y Datos
+- Usar useState y useEffect para estado local
+- Implementar Context API para estado global cuando sea necesario
+- Usar servicios para comunicación con API
+- Implementar loading states y error handling
+- Mantener estado inmutable
+
+## Estilos y UI
+- Usar CSS modules o styled-components
+- Implementar diseño responsive
+- Seguir principios de UX/UI
+- Usar variables CSS para temas
+- Mantener consistencia visual
+- **Loading States**: Usar colores neutros (blanco, gris) para loading spinners
+- **Loading Colors**: Evitar colores muy llamativos en loading states
+- **Loading Theme**: Mantener loading minimalista y elegante como el resto de la UI
+
+## Componentes de UI
+- Crear componentes de UI reutilizables en `src/components/ui/`
+- Usar componentes Button, Input, RadioButton, Checkbox, Select, TextArea
+- Mantener estilos consistentes con el tema cyberpunk
+- Implementar variantes de componentes (primary, secondary, danger, ghost, link)
+- Agregar estados de loading y disabled
+- Usar bordes grises suaves (`border-gray-400`) por defecto
+- Implementar focus states y transiciones suaves
+- Exportar componentes desde `src/components/ui/index.js`
+
+## Servicios y API
+- Centralizar llamadas a API en servicios
+- Usar axios para requests HTTP
+- Implementar interceptors para autenticación
+- Manejar errores de API consistentemente
+- Usar async/await para operaciones asíncronas
+
+## Routing y Navegación
+- Usar React Router v6
+- Implementar rutas protegidas
+- Usar lazy loading para componentes
+- Mantener navegación intuitiva
+- Implementar breadcrumbs cuando sea necesario
+
+## Performance
+- Usar React.lazy para code splitting
+- Implementar memoización cuando sea necesario
+- Optimizar re-renders
+- Usar useCallback y useMemo apropiadamente
+- Minimizar bundle size
+
+## Testing
+- Escribir tests unitarios para componentes
+- Usar React Testing Library
+- Implementar tests de integración
+- Mantener cobertura de tests alta
+- Usar Jest como test runner
+
+## Código y Estilo
+- Usar ES6+ features
+- Implementar destructuring
+- Usar arrow functions
+- Mantener código limpio y legible
+- Seguir convenciones de nomenclatura
+
+## Build y Deploy
+- Usar Vite como build tool
+- Implementar variables de entorno
+- Optimizar para producción
+- Usar CDN para assets estáticos
+- Implementar cache strategies
+
+## Accesibilidad
+- Usar semantic HTML
+- Implementar ARIA labels
+- Mantener contraste adecuado
+- Usar keyboard navigation
+- Implementar screen reader support

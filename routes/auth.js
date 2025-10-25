@@ -40,6 +40,7 @@ router.post('/register', registerValidation, authController.register);
 router.post('/login', loginValidation, authController.login);
 
 // Rutas protegidas (requieren autenticación)
+router.get('/me', authenticateToken, authController.getProfile);
 router.get('/profile', authenticateToken, authController.getProfile);
 router.put('/profile', authenticateToken, authController.updateProfile);
 router.get('/verify', authenticateToken, authController.verifyToken);

@@ -1,0 +1,67 @@
+---
+description: "Reglas específicas para el desarrollo del backend Node.js/Express"
+globs: ["**/*.js", "**/*.json", "**/config/**", "**/controllers/**", "**/models/**", "**/routes/**", "**/middleware/**", "**/scripts/**", "**/database/**"]
+alwaysApply: true
+---
+
+# Backend Development Rules
+
+## Arquitectura y Estructura
+- Seguir el patrón MVC (Model-View-Controller)
+- Mantener separación clara entre controladores, modelos y rutas
+- Usar Sequelize como ORM para la base de datos MySQL
+- Implementar middleware de autenticación JWT
+- Seguir convenciones de nomenclatura en inglés
+
+## Base de Datos
+- Usar Sequelize para todas las operaciones de base de datos
+- Definir modelos en la carpeta `models/`
+- Implementar validaciones en los modelos
+- Usar migraciones para cambios de esquema
+- Mantener relaciones entre modelos bien definidas
+
+## API y Rutas
+- Usar Express.js para el servidor
+- Implementar rutas RESTful
+- Agrupar rutas por funcionalidad en archivos separados
+- Usar middleware de validación con express-validator
+- Implementar manejo de errores consistente
+
+## Autenticación y Seguridad
+- Usar JWT para autenticación
+- Implementar bcryptjs para hash de contraseñas
+- Validar tokens en middleware
+- Usar CORS configurado apropiadamente
+- Validar entrada de datos en todos los endpoints
+
+## Controladores
+- Mantener lógica de negocio en controladores
+- Usar async/await para operaciones asíncronas
+- Implementar manejo de errores try-catch
+- Retornar respuestas JSON consistentes
+- Validar permisos de usuario
+
+## Variables de Entorno
+- Usar dotenv para configuración
+- Definir variables de entorno en .env
+- Validar variables requeridas al inicio
+- Usar valores por defecto para desarrollo
+
+## Logging y Debugging
+- Implementar logging estructurado
+- Usar console.log para desarrollo
+- Manejar errores no capturados
+- Implementar graceful shutdown
+
+## Código y Estilo
+- Usar ES6+ features
+- Implementar async/await en lugar de callbacks
+- Mantener funciones pequeñas y enfocadas
+- Usar nombres descriptivos para variables y funciones
+- Comentar código complejo
+
+## Testing y Calidad
+- Escribir tests para funcionalidad crítica
+- Usar scripts de seed para datos de prueba
+- Implementar validación de datos
+- Mantener código limpio y legible

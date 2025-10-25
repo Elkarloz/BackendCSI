@@ -31,7 +31,7 @@ const register = async (req, res) => {
     const { email, password, name } = req.body;
 
     // Crear el usuario
-    const newUser = await User.create({ email, password, name });
+    const newUser = await User.createUser({ email, password, name });
 
     // Generar token JWT
     const token = generateToken(newUser.id);
@@ -146,7 +146,7 @@ const login = async (req, res) => {
 // Controlador para obtener perfil del usuario autenticado
 const getProfile = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     
     const user = await User.findById(userId);
     if (!user) {
@@ -176,7 +176,7 @@ const getProfile = async (req, res) => {
 // Controlador para verificar token
 const verifyToken = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     
     const user = await User.findById(userId);
     if (!user) {
@@ -206,7 +206,7 @@ const verifyToken = async (req, res) => {
 // Controlador para actualizar perfil del usuario
 const updateProfile = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const { name, email } = req.body;
 
     if (!name || !email) {
@@ -233,7 +233,7 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    await user.update({ name, email });
+    await user.updateUser({ name, email });
 
     res.json({
       success: true,

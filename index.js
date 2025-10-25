@@ -2,7 +2,20 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const { testConnection } = require('./config/database');
+// Establecer variables de entorno si no existen
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = 'tu_secreto_jwt_muy_seguro_aqui_2024';
+  process.env.JWT_EXPIRES_IN = '7d';
+  process.env.DB_HOST = 'localhost';
+  process.env.DB_PORT = '3306';
+  process.env.DB_NAME = 'dbcsi1';
+  process.env.DB_USER = 'root';
+  process.env.DB_PASSWORD = '';
+  process.env.PORT = '5000';
+  process.env.NODE_ENV = 'development';
+}
+
+const { testConnection, syncModels } = require('./config/sequelize');
 const routes = require('./routes');
 
 // Crear aplicación Express
@@ -51,6 +64,9 @@ const startServer = async () => {
   try {
     // Verificar conexión a la base de datos
     await testConnection();
+    
+    // Sincronizar modelos (crear tablas si no existen)
+    await syncModels(false);
     
     // Iniciar servidor
     app.listen(PORT, () => {

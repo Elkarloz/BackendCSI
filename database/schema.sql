@@ -1,57 +1,114 @@
--- Script para crear la base de datos y tabla de usuarios
--- Ejecutar este script en MySQL antes de iniciar la aplicación
+-- Esquema de base de datos para el sistema educativo de planetas
+-- Sistema de gestión de contenido educativo con planetas, niveles y ejercicios
 
--- Crear base de datos (opcional, si no existe)
-CREATE DATABASE IF NOT EXISTS dbcsi1 
-CHARACTER SET utf8mb4 
-COLLATE utf8mb4_unicode_ci;
-
--- Usar la base de datos
-USE dbcsi1;
-
--- Crear tabla de usuarios
+-- Tabla de usuarios (ya existe, pero la incluimos para referencia)
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    name VARCHAR(100) NOT NULL,
     role ENUM('estudiante', 'admin') DEFAULT 'estudiante',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    -- Índices para optimizar consultas
-    INDEX idx_email (email),
-    INDEX idx_role (role),
-    INDEX idx_created_at (created_at)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Crear tabla de contenidos
+-- Tabla de planetas (temas de integrales)
+CREATE TABLE IF NOT EXISTS planets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    order_index INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Tabla de niveles (5 niveles por planeta)
+CREATE TABLE IF NOT EXISTS levels (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    planet_id INT NOT NULL,
+    level_number INT NOT NULL CHECK (level_number BETWEEN 1 AND 5),
+    title VARCHAR(255) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    order_index INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (planet_id) REFERENCES planets(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_planet_level (planet_id, level_number)
+);
+
+-- Tabla de ejercicios
+CREATE TABLE IF NOT EXISTS exercises (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    level_id INT NOT NULL,
+    question TEXT NOT NULL,
+    type ENUM('multiple_choice', 'true_false', 'numeric') DEFAULT 'multiple_choice',
+    difficulty ENUM('easy', 'medium', 'hard') DEFAULT 'easy',
+    points INT DEFAULT 10,
+    time_limit INT DEFAULT 0, -- en segundos
+    option_a TEXT,
+    option_b TEXT,
+    option_c TEXT,
+    option_d TEXT,
+    correct_answer VARCHAR(10),
+    explanation TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (level_id) REFERENCES levels(id) ON DELETE CASCADE
+);
+
+-- Tabla de progreso del estudiante
+CREATE TABLE IF NOT EXISTS student_progress (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    level_id INT NOT NULL,
+    is_completed BOOLEAN DEFAULT FALSE,
+    completion_percentage DECIMAL(5,2) DEFAULT 0.00,
+    total_exercises INT DEFAULT 0,
+    completed_exercises INT DEFAULT 0,
+    score DECIMAL(5,2) DEFAULT 0.00,
+    time_spent INT DEFAULT 0, -- Tiempo en segundos
+    last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (level_id) REFERENCES levels(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_level (user_id, level_id)
+);
+
+-- Tabla de intentos de ejercicios (ELIMINADA - Simplificación del esquema)
+
+-- Tabla de contenido existente (para compatibilidad)
 CREATE TABLE IF NOT EXISTS contents (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    resource_type ENUM('pdf', 'video') NOT NULL,
-    resource_url VARCHAR(500) NOT NULL,
-    created_by INT NOT NULL,
+    resource_type VARCHAR(100),
+    resource_url VARCHAR(500),
+    created_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    -- Clave foránea
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,
-    
-    -- Índices
-    INDEX idx_resource_type (resource_type),
-    INDEX idx_created_by (created_by),
-    INDEX idx_created_at (created_at)
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- Verificar que las tablas se crearon correctamente
-DESCRIBE users;
-DESCRIBE contents;
+-- Índices para optimizar consultas
+CREATE INDEX idx_planets_order ON planets(order_index);
+CREATE INDEX idx_levels_planet ON levels(planet_id);
+CREATE INDEX idx_levels_number ON levels(level_number);
+CREATE INDEX idx_exercises_level ON exercises(level_id);
+CREATE INDEX idx_exercises_type ON exercises(type);
+CREATE INDEX idx_progress_user ON student_progress(user_id);
+CREATE INDEX idx_progress_level ON student_progress(level_id);
+-- Índices de exercise_attempts eliminados (tabla eliminada)
 
--- Consultas para verificar que las tablas están vacías
-SELECT COUNT(*) as total_users FROM users;
-SELECT COUNT(*) as total_contents FROM contents;
-
--- Script para agregar columna role a usuarios existentes (migración)
-ALTER TABLE users ADD COLUMN IF NOT EXISTS role ENUM('estudiante', 'admin') DEFAULT 'estudiante' AFTER name;
+-- Datos de ejemplo para planetas
+INSERT INTO planets (title, description, order_index, created_by) VALUES
+('Conceptos Básicos', 'Introducción a las integrales definidas, notación y definición fundamental', 1, 1),
+('Propiedades', 'Propiedades básicas de las integrales: linealidad, aditividad y signo', 2, 1),
+('Métodos de Integración', 'Técnicas de integración: sustitución, por partes, fracciones parciales', 3, 1),
+('Aplicaciones', 'Aplicaciones de las integrales: áreas, volúmenes, trabajo y física', 4, 1),
+('Evaluación Numérica', 'Métodos numéricos para aproximar integrales: trapecio, Simpson, Romberg', 5, 1);
