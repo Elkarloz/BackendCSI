@@ -30,7 +30,8 @@ const allowedOrigins = [
   'https://fronted-csi.vercel.app',
 ];
 
-app.use(cors({
+// CORS configuration
+const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
@@ -44,20 +45,61 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  optionsSuccessStatus: 200
-}));
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Accept', 
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
+  exposedHeaders: ['Authorization'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
+};
 
-// Handle preflight requests explicitly
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly for all routes
 app.options('*', (req, res) => {
   const origin = req.headers.origin;
+  console.log('OPTIONS request from origin:', origin);
+  
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
   }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
+  
   res.sendStatus(200);
+});
+
+// Universal CORS middleware - applies to ALL routes
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Set CORS headers for ALL requests
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  // Set headers for all methods
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+  res.header('Access-Control-Max-Age', '86400');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log('✅ Preflight request handled for:', req.path);
+    return res.sendStatus(200);
+  }
+  
+  next();
 });
 
 app.use(express.json({ limit: '10mb' }));
@@ -69,15 +111,52 @@ app.use('/uploads', express.static('uploads'));
 // Middleware de logging
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log('Origin:', req.headers.origin);
+  console.log('User-Agent:', req.headers['user-agent']);
   next();
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Server is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Rutas
 app.use('/api', routes);
 
-// Middleware para manejo de errores global
+// Final CORS middleware - ensures ALL responses have CORS headers
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Apply CORS headers to ALL responses
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+  
+  next();
+});
+
+// Middleware para manejo de errores global con CORS
 app.use((err, req, res, next) => {
   console.error('Error no manejado:', err);
+  
+  // Ensure CORS headers are set even for errors
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
   
   res.status(err.status || 500).json({
     success: false,
@@ -85,6 +164,26 @@ app.use((err, req, res, next) => {
       ? 'Error interno del servidor' 
       : err.message,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// Catch-all route for 404 with CORS
+app.use('*', (req, res) => {
+  const origin = req.headers.origin;
+  
+  // Set CORS headers for 404 responses
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+  
+  res.status(404).json({
+    success: false,
+    message: 'Endpoint no encontrado',
+    path: req.originalUrl,
+    method: req.method
   });
 });
 
