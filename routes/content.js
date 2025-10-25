@@ -15,4 +15,9 @@ router.post('/', authenticateToken, ContentController.createContent);
 router.put('/:id', authenticateToken, ContentController.updateContent);
 router.delete('/:id', authenticateToken, ContentController.deleteContent);
 
+// Rutas para subida de archivos PDF
+router.post('/:id/upload-pdf', authenticateToken, ContentController.uploadContentPDF);
+router.delete('/:id/pdf', authenticateToken, ContentController.deleteContentPDF);
+router.get('/:id/download', ContentController.downloadContentPDF);
+
 module.exports = router;

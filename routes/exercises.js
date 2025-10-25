@@ -64,4 +64,25 @@ router.put('/reorder', authenticateToken, (req, res, next) => {
   next();
 }, exerciseController.reorderExercises);
 
+// Rutas para subida de archivos (requieren autenticación y permisos de admin)
+router.post('/:id/upload-image', authenticateToken, (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Acceso denegado. Se requieren permisos de administrador.'
+    });
+  }
+  next();
+}, exerciseController.uploadExerciseImage);
+
+router.delete('/:id/image', authenticateToken, (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Acceso denegado. Se requieren permisos de administrador.'
+    });
+  }
+  next();
+}, exerciseController.deleteExerciseImage);
+
 module.exports = router;

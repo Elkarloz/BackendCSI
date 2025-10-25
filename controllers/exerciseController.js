@@ -1,4 +1,5 @@
 const Exercise = require('../models/Exercise');
+const { uploadExerciseImage, handleUploadError, getFileUrl } = require('../middleware/upload');
 
 // Obtener todos los ejercicios
 const getAllExercises = async (req, res) => {
@@ -109,11 +110,11 @@ const createExercise = async (req, res) => {
       });
     }
     
-    const validTypes = ['multiple_choice', 'true_false', 'numeric'];
+    const validTypes = ['multiple_choice', 'true_false', 'numeric', 'image_multiple_choice'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({
         success: false,
-        message: 'Tipo de ejercicio no válido. Tipos permitidos: multiple_choice, true_false, numeric'
+        message: 'Tipo de ejercicio no válido. Tipos permitidos: multiple_choice, true_false, numeric, image_multiple_choice'
       });
     }
     
@@ -138,7 +139,8 @@ const createExercise = async (req, res) => {
       optionC,
       optionD,
       correctAnswer,
-      explanation
+      explanation,
+      imageUrl: null
     };
 
     // Configurar opciones automáticamente según el tipo
@@ -438,6 +440,117 @@ const evaluateExercise = async (req, res) => {
 };
 
 
+// Subir imagen a ejercicio
+const uploadExerciseImageController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Verificar que el ejercicio existe
+    const exercise = await Exercise.findById(id);
+    if (!exercise) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ejercicio no encontrado'
+      });
+    }
+    
+    // Usar middleware de Multer
+    const { uploadExerciseImage: multerUpload } = require('../middleware/upload');
+    multerUpload(req, res, async (err) => {
+      if (err) {
+        return handleUploadError(err, req, res);
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No se ha subido ningún archivo'
+        });
+      }
+      
+      try {
+        // Generar URL del archivo
+        const imageUrl = getFileUrl(req, req.file.filename, 'image');
+        
+        // Actualizar ejercicio con la URL de la imagen
+        await exercise.update({ imageUrl });
+        
+        res.json({
+          success: true,
+          data: {
+            imageUrl,
+            filename: req.file.filename,
+            originalName: req.file.originalname,
+            size: req.file.size
+          },
+          message: 'Imagen subida exitosamente'
+        });
+      } catch (error) {
+        console.error('Error al actualizar ejercicio con imagen:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Error al actualizar ejercicio con imagen',
+          error: error.message
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Error al subir imagen:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: error.message
+    });
+  }
+};
+
+// Eliminar imagen de ejercicio
+const deleteExerciseImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const exercise = await Exercise.findById(id);
+    if (!exercise) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ejercicio no encontrado'
+      });
+    }
+    
+    if (!exercise.imageUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'El ejercicio no tiene imagen'
+      });
+    }
+    
+    // Extraer nombre del archivo de la URL
+    const filename = exercise.imageUrl.split('/').pop();
+    const filePath = `uploads/images/${filename}`;
+    
+    // Eliminar archivo del sistema de archivos
+    const fs = require('fs');
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    
+    // Actualizar ejercicio para remover la URL de la imagen
+    await exercise.update({ imageUrl: null });
+    
+    res.json({
+      success: true,
+      message: 'Imagen eliminada exitosamente'
+    });
+  } catch (error) {
+    console.error('Error al eliminar imagen:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllExercises,
   getExerciseById,
@@ -449,5 +562,7 @@ module.exports = {
   reorderExercises,
   getExerciseStats,
   getExercisesCount,
-  evaluateExercise
+  evaluateExercise,
+  uploadExerciseImage: uploadExerciseImageController,
+  deleteExerciseImage
 };

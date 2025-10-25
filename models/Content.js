@@ -1,32 +1,33 @@
 const { sequelize } = require('../config/database');
 
 class Content {
-  constructor(id, title, description, resourceType, resourceUrl, createdBy, createdAt, updatedAt) {
+  constructor(id, title, description, resourceType, resourceUrl, filePath, createdBy, createdAt, updatedAt) {
     this.id = id;
     this.title = title;
     this.description = description;
     this.resourceType = resourceType;
     this.resourceUrl = resourceUrl;
+    this.filePath = filePath;
     this.createdBy = createdBy;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }
 
   // Crear un nuevo contenido
-  static async create({ title, description, resourceType, resourceUrl, createdBy }) {
+  static async create({ title, description, resourceType, resourceUrl, filePath = null, createdBy }) {
     try {
-      console.log('📄 Content.create() - Datos recibidos:', { title, description, resourceType, resourceUrl, createdBy });
+      console.log('📄 Content.create() - Datos recibidos:', { title, description, resourceType, resourceUrl, filePath, createdBy });
       
       const query = `
-        INSERT INTO contents (title, description, resource_type, resource_url, created_by) 
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO contents (title, description, resource_type, resource_url, file_path, created_by) 
+        VALUES (?, ?, ?, ?, ?, ?)
       `;
       
       console.log('📄 Content.create() - Ejecutando query:', query);
-      console.log('📄 Content.create() - Con replacements:', [title, description, resourceType, resourceUrl, createdBy]);
+      console.log('📄 Content.create() - Con replacements:', [title, description, resourceType, resourceUrl, filePath, createdBy]);
       
       const [result] = await sequelize.query(query, {
-        replacements: [title, description, resourceType, resourceUrl, createdBy],
+        replacements: [title, description, resourceType, resourceUrl, filePath, createdBy],
         type: sequelize.QueryTypes.INSERT
       });
       
@@ -83,6 +84,7 @@ class Content {
         content.description,
         content.resource_type,
         content.resource_url,
+        content.file_path,
         content.created_by,
         content.created_at,
         content.updated_at
@@ -117,6 +119,7 @@ class Content {
         description: content.description,
         resourceType: content.resource_type,
         resourceUrl: content.resource_url,
+        filePath: content.file_path,
         createdBy: content.created_by,
         creatorName: content.creator_name,
         createdAt: content.created_at,
@@ -149,6 +152,7 @@ class Content {
         description: content.description,
         resourceType: content.resource_type,
         resourceUrl: content.resource_url,
+        filePath: content.file_path,
         createdBy: content.created_by,
         creatorName: content.creator_name,
         createdAt: content.created_at,
@@ -160,27 +164,44 @@ class Content {
   }
 
   // Actualizar contenido
-  async update({ title, description, resourceType, resourceUrl }) {
+  async update({ title, description, resourceType, resourceUrl, filePath }) {
     try {
+      console.log('📄 Content.update() - Datos recibidos:', { title, description, resourceType, resourceUrl, filePath });
+      
       const query = `
         UPDATE contents 
-        SET title = ?, description = ?, resource_type = ?, resource_url = ?
+        SET title = ?, description = ?, resource_type = ?, resource_url = ?, file_path = ?
         WHERE id = ?
       `;
       
+      // Preparar los valores, manejando null/undefined
+      const replacements = [
+        title || this.title,
+        description || this.description,
+        resourceType || this.resourceType,
+        resourceUrl !== undefined ? resourceUrl : this.resourceUrl,
+        filePath !== undefined ? filePath : this.filePath,
+        this.id
+      ];
+      
+      console.log('📄 Content.update() - Replacements:', replacements);
+      
       await sequelize.query(query, {
-        replacements: [title, description, resourceType, resourceUrl, this.id],
+        replacements: replacements,
         type: sequelize.QueryTypes.UPDATE
       });
       
       // Actualizar propiedades del objeto
-      this.title = title;
-      this.description = description;
-      this.resourceType = resourceType;
-      this.resourceUrl = resourceUrl;
+      if (title !== undefined) this.title = title;
+      if (description !== undefined) this.description = description;
+      if (resourceType !== undefined) this.resourceType = resourceType;
+      if (resourceUrl !== undefined) this.resourceUrl = resourceUrl;
+      if (filePath !== undefined) this.filePath = filePath;
       
+      console.log('📄 Content.update() - Contenido actualizado exitosamente');
       return this;
     } catch (error) {
+      console.error('📄 Content.update() - Error:', error);
       throw error;
     }
   }
@@ -220,6 +241,7 @@ class Content {
       description: this.description,
       resourceType: this.resourceType,
       resourceUrl: this.resourceUrl,
+      filePath: this.filePath,
       createdBy: this.createdBy,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt

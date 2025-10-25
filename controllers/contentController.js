@@ -1,4 +1,5 @@
 const Content = require('../models/Content');
+const { uploadContentPDF, handleUploadError, getFileUrl, deleteFile } = require('../middleware/upload');
 
 class ContentController {
   // Crear contenido
@@ -14,11 +15,11 @@ class ContentController {
 
       const { title, description, resourceType, resourceUrl } = req.body;
 
-      // Validaciones
-      if (!title || !resourceType || !resourceUrl) {
+      // Validaciones básicas
+      if (!title || !resourceType) {
         return res.status(400).json({
           success: false,
-          message: 'Título, tipo de recurso y URL son requeridos'
+          message: 'Título y tipo de recurso son requeridos'
         });
       }
 
@@ -29,21 +30,43 @@ class ContentController {
         });
       }
 
-      // Validar URL
-      try {
-        new URL(resourceUrl);
-      } catch (error) {
+      // Validar URL solo si es video o si se proporciona una URL
+      if (resourceType === 'video' && !resourceUrl) {
         return res.status(400).json({
           success: false,
-          message: 'La URL del recurso no es válida'
+          message: 'La URL del recurso es requerida para videos'
         });
+      }
+
+      // Para PDFs, la URL es opcional inicialmente (se subirá después)
+      if (resourceUrl && resourceType === 'pdf') {
+        try {
+          new URL(resourceUrl);
+        } catch (error) {
+          return res.status(400).json({
+            success: false,
+            message: 'La URL del recurso no es válida'
+          });
+        }
+      }
+
+      // Para videos, la URL es obligatoria
+      if (resourceType === 'video' && resourceUrl) {
+        try {
+          new URL(resourceUrl);
+        } catch (error) {
+          return res.status(400).json({
+            success: false,
+            message: 'La URL del recurso no es válida'
+          });
+        }
       }
 
       console.log('📄 ContentController.createContent() - Creando contenido con datos:', {
         title: title.trim(),
         description: description ? description.trim() : '',
         resourceType,
-        resourceUrl: resourceUrl.trim(),
+        resourceUrl: resourceUrl ? resourceUrl.trim() : null,
         createdBy: req.user.id
       });
 
@@ -51,7 +74,8 @@ class ContentController {
         title: title.trim(),
         description: description ? description.trim() : '',
         resourceType,
-        resourceUrl: resourceUrl.trim(),
+        resourceUrl: resourceUrl ? resourceUrl.trim() : null,
+        filePath: null,
         createdBy: req.user.id
       });
 
@@ -60,7 +84,10 @@ class ContentController {
       res.status(201).json({
         success: true,
         message: 'Contenido creado correctamente',
-        data: { content: content.toObject() }
+        data: { 
+          id: content.id,
+          content: content.toObject() 
+        }
       });
     } catch (error) {
       console.error('Error en createContent:', error);
@@ -212,7 +239,8 @@ class ContentController {
         title: title.trim(),
         description: description ? description.trim() : '',
         resourceType,
-        resourceUrl: resourceUrl.trim()
+        resourceUrl: resourceUrl.trim(),
+        filePath: content.filePath // Mantener el filePath existente
       });
 
       res.json({
@@ -335,6 +363,161 @@ class ContentController {
       res.status(500).json({
         success: false,
         message: 'Error interno del servidor'
+      });
+    }
+  }
+
+  // Subir PDF a contenido
+  static async uploadContentPDF(req, res) {
+    try {
+      const { id } = req.params;
+      
+      // Verificar que el contenido existe
+      const content = await Content.findById(id);
+      if (!content) {
+        return res.status(404).json({
+          success: false,
+          message: 'Contenido no encontrado'
+        });
+      }
+      
+      // Usar middleware de Multer
+      uploadContentPDF(req, res, async (err) => {
+        if (err) {
+          return handleUploadError(err, req, res);
+        }
+        
+        if (!req.file) {
+          return res.status(400).json({
+            success: false,
+            message: 'No se ha subido ningún archivo'
+          });
+        }
+        
+        try {
+          // Generar URL del archivo
+          const pdfUrl = getFileUrl(req, req.file.filename, 'pdf');
+          const filePath = req.file.path;
+          
+          // Actualizar contenido con la URL del PDF y ruta del archivo
+          await content.update({ 
+            resourceUrl: pdfUrl,
+            filePath: filePath
+          });
+          
+          res.json({
+            success: true,
+            data: {
+              pdfUrl,
+              filePath,
+              filename: req.file.filename,
+              originalName: req.file.originalname,
+              size: req.file.size
+            },
+            message: 'PDF subido exitosamente'
+          });
+        } catch (error) {
+          console.error('Error al actualizar contenido con PDF:', error);
+          res.status(500).json({
+            success: false,
+            message: 'Error al actualizar contenido con PDF',
+            error: error.message
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Error al subir PDF:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor',
+        error: error.message
+      });
+    }
+  }
+
+  // Eliminar PDF de contenido
+  static async deleteContentPDF(req, res) {
+    try {
+      const { id } = req.params;
+      
+      const content = await Content.findById(id);
+      if (!content) {
+        return res.status(404).json({
+          success: false,
+          message: 'Contenido no encontrado'
+        });
+      }
+      
+      if (!content.filePath) {
+        return res.status(400).json({
+          success: false,
+          message: 'El contenido no tiene PDF'
+        });
+      }
+      
+      // Eliminar archivo del sistema de archivos
+      const deleted = deleteFile(content.filePath);
+      
+      // Actualizar contenido para remover la URL y ruta del PDF
+      await content.update({ 
+        resourceUrl: null,
+        filePath: null
+      });
+      
+      res.json({
+        success: true,
+        message: 'PDF eliminado exitosamente',
+        data: { fileDeleted: deleted }
+      });
+    } catch (error) {
+      console.error('Error al eliminar PDF:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor',
+        error: error.message
+      });
+    }
+  }
+
+  // Descargar PDF de contenido
+  static async downloadContentPDF(req, res) {
+    try {
+      const { id } = req.params;
+      
+      const content = await Content.findById(id);
+      if (!content) {
+        return res.status(404).json({
+          success: false,
+          message: 'Contenido no encontrado'
+        });
+      }
+      
+      if (!content.filePath) {
+        return res.status(400).json({
+          success: false,
+          message: 'El contenido no tiene PDF'
+        });
+      }
+      
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Verificar que el archivo existe
+      if (!fs.existsSync(content.filePath)) {
+        return res.status(404).json({
+          success: false,
+          message: 'Archivo PDF no encontrado'
+        });
+      }
+      
+      // Enviar archivo
+      res.download(content.filePath, content.title + '.pdf');
+    } catch (error) {
+      console.error('Error al descargar PDF:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor',
+        error: error.message
       });
     }
   }

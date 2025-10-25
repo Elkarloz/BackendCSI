@@ -1,7 +1,7 @@
 const { sequelize } = require('../config/database');
 
 class Exercise {
-  constructor(id, levelId, question, type, difficulty, points, timeLimit, optionA, optionB, optionC, optionD, correctAnswer, explanation, isActive, createdAt, updatedAt) {
+  constructor(id, levelId, question, type, difficulty, points, timeLimit, optionA, optionB, optionC, optionD, correctAnswer, explanation, imageUrl, isActive, createdAt, updatedAt) {
     this.id = id;
     this.levelId = levelId;
     this.question = question;
@@ -15,6 +15,7 @@ class Exercise {
     this.optionD = optionD;
     this.correctAnswer = correctAnswer;
     this.explanation = explanation;
+    this.imageUrl = imageUrl;
     this.isActive = isActive;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
@@ -51,11 +52,11 @@ class Exercise {
   }
 
   // Crear un nuevo ejercicio
-  static async create({ levelId, question, type, difficulty = 'easy', points = 10, timeLimit = 0, optionA, optionB, optionC, optionD, correctAnswer, explanation }) {
+  static async create({ levelId, question, type, difficulty = 'easy', points = 10, timeLimit = 0, optionA, optionB, optionC, optionD, correctAnswer, explanation, imageUrl = null }) {
     try {
       const query = `
-        INSERT INTO exercises (level_id, question, type, difficulty, points, time_limit, option_a, option_b, option_c, option_d, correct_answer, explanation) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO exercises (level_id, question, type, difficulty, points, time_limit, option_a, option_b, option_c, option_d, correct_answer, explanation, image_url) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
       const result = await sequelize.query(query, {
@@ -71,7 +72,8 @@ class Exercise {
           optionC, 
           optionD, 
           correctAnswer, 
-          explanation
+          explanation,
+          imageUrl
         ],
         type: sequelize.QueryTypes.INSERT
       });
@@ -119,6 +121,7 @@ class Exercise {
         exercise.option_d,
         exercise.correct_answer,
         exercise.explanation,
+        exercise.image_url,
         exercise.is_active,
         exercise.created_at,
         exercise.updated_at
@@ -170,6 +173,7 @@ class Exercise {
         optionD: exercise.option_d,
         correctAnswer: exercise.correct_answer,
         explanation: exercise.explanation,
+        imageUrl: exercise.image_url,
         isActive: exercise.is_active,
         createdAt: exercise.created_at,
         updatedAt: exercise.updated_at
@@ -235,6 +239,7 @@ class Exercise {
         optionD: exercise.option_d,
         correctAnswer: exercise.correct_answer,
         explanation: exercise.explanation,
+        imageUrl: exercise.image_url,
         isActive: exercise.is_active,
         createdAt: exercise.created_at,
         updatedAt: exercise.updated_at
@@ -245,13 +250,13 @@ class Exercise {
   }
 
   // Actualizar ejercicio
-  async update({ question, type, difficulty, points, timeLimit, optionA, optionB, optionC, optionD, correctAnswer, explanation, isActive }) {
+  async update({ question, type, difficulty, points, timeLimit, optionA, optionB, optionC, optionD, correctAnswer, explanation, imageUrl, isActive }) {
     try {
       const query = `
         UPDATE exercises 
         SET question = ?, type = ?, difficulty = ?, points = ?, time_limit = ?, 
             option_a = ?, option_b = ?, option_c = ?, option_d = ?, 
-            correct_answer = ?, explanation = ?, is_active = ?
+            correct_answer = ?, explanation = ?, image_url = ?, is_active = ?
         WHERE id = ?
       `;
       
@@ -268,6 +273,7 @@ class Exercise {
           optionD !== undefined ? optionD : this.optionD, 
           correctAnswer || this.correctAnswer, 
           explanation !== undefined ? explanation : this.explanation, 
+          imageUrl !== undefined ? imageUrl : this.imageUrl,
           isActive !== undefined ? isActive : this.isActive, 
           this.id
         ],
@@ -286,6 +292,7 @@ class Exercise {
       this.optionD = optionD !== undefined ? optionD : this.optionD;
       this.correctAnswer = correctAnswer || this.correctAnswer;
       this.explanation = explanation !== undefined ? explanation : this.explanation;
+      this.imageUrl = imageUrl !== undefined ? imageUrl : this.imageUrl;
       this.isActive = isActive !== undefined ? isActive : this.isActive;
       
       return this;
@@ -518,6 +525,7 @@ class Exercise {
       optionD: this.optionD,
       correctAnswer: this.correctAnswer,
       explanation: this.explanation,
+      imageUrl: this.imageUrl,
       isActive: this.isActive,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
