@@ -158,15 +158,29 @@ const updateLevel = async (req, res) => {
       }
     }
     
-    await level.update({
+    // Crear una instancia de Level para poder usar el método update
+    const levelInstance = new Level(
+      level.id,
+      level.planetId,
+      level.title,
+      level.isActive,
+      level.orderIndex,
+      level.createdAt,
+      level.updatedAt
+    );
+    
+    await levelInstance.update({
       title,
       orderIndex: orderIndex || level.orderIndex,
       isActive: isActive !== undefined ? isActive : true
     });
     
+    // Obtener el nivel actualizado
+    const updatedLevel = await Level.findById(id);
+    
     res.json({
       success: true,
-      data: level,
+      data: updatedLevel,
       message: 'Nivel actualizado exitosamente'
     });
   } catch (error) {
@@ -192,7 +206,18 @@ const deleteLevel = async (req, res) => {
       });
     }
     
-    await level.delete();
+    // Crear una instancia de Level para poder usar el método delete
+    const levelInstance = new Level(
+      level.id,
+      level.planetId,
+      level.title,
+      level.isActive,
+      level.orderIndex,
+      level.createdAt,
+      level.updatedAt
+    );
+    
+    await levelInstance.delete();
     
     res.json({
       success: true,
@@ -221,7 +246,18 @@ const deleteLevelPermanently = async (req, res) => {
       });
     }
     
-    await level.deletePermanently();
+    // Crear una instancia de Level para poder usar el método deletePermanently
+    const levelInstance = new Level(
+      level.id,
+      level.planetId,
+      level.title,
+      level.isActive,
+      level.orderIndex,
+      level.createdAt,
+      level.updatedAt
+    );
+    
+    await levelInstance.deletePermanently();
     
     res.json({
       success: true,
@@ -278,7 +314,18 @@ const getLevelStats = async (req, res) => {
       });
     }
     
-    const stats = await level.getStats();
+    // Crear una instancia de Level para poder usar el método getStats
+    const levelInstance = new Level(
+      level.id,
+      level.planetId,
+      level.title,
+      level.isActive,
+      level.orderIndex,
+      level.createdAt,
+      level.updatedAt
+    );
+    
+    const stats = await levelInstance.getStats();
     
     res.json({
       success: true,
