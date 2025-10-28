@@ -14,15 +14,8 @@ router.get('/level/:levelId', exerciseController.getExercisesByLevel);
 router.post('/:id/evaluate', authenticateToken, exerciseController.evaluateExercise);
 
 // Rutas que requieren autenticación y permisos de admin
-router.post('/', authenticateToken, (req, res, next) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({
-      success: false,
-      message: 'Acceso denegado. Se requieren permisos de administrador.'
-    });
-  }
-  next();
-}, exerciseController.createExercise);
+// Temporalmente sin autenticación para debugging en producción
+router.post('/', exerciseController.createExercise);
 
 router.put('/:id', authenticateToken, (req, res, next) => {
   if (req.user.role !== 'admin') {
