@@ -20,12 +20,12 @@ class Planet {
       const now = new Date();
       
       const query = `
-        INSERT INTO planets (planet_id, title, description, difficulty_order, is_active, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, 1, ?, ?)
+        INSERT INTO planets (title, description, order_index, is_active, created_at, updated_at) 
+        VALUES (?, ?, ?, 1, ?, ?)
       `;
       
       const result = await sequelize.query(query, {
-        replacements: [planetId, title, description || null, orderIndex, now, now],
+        replacements: [title, description || null, orderIndex, now, now],
         type: sequelize.QueryTypes.INSERT
       });
       
@@ -60,7 +60,7 @@ class Planet {
         planet.id,
         planet.title,
         planet.description,
-        planet.difficulty_order,
+        planet.order_index,
         planet.is_active,
         null, // created_by no existe en la tabla
         planet.created_at,
@@ -77,7 +77,7 @@ class Planet {
       const query = `
         SELECT p.*
         FROM planets p
-        WHERE p.difficulty_order = ? AND p.is_active = 1
+        WHERE p.order_index = ? AND p.is_active = 1
       `;
       
       const results = await sequelize.query(query, {
@@ -94,7 +94,7 @@ class Planet {
         planet.id,
         planet.title,
         planet.description,
-        planet.difficulty_order,
+        planet.order_index,
         planet.is_active,
         null, // created_by no existe en la tabla
         planet.created_at,
@@ -119,27 +119,33 @@ class Planet {
         query += ' WHERE p.is_active = 1';
       }
       
-      query += ' GROUP BY p.id ORDER BY p.difficulty_order ASC, p.created_at ASC';
+      query += ' GROUP BY p.id ORDER BY p.order_index ASC, p.created_at ASC';
       
       const results = await sequelize.query(query, {
         type: sequelize.QueryTypes.SELECT
       });
       
-      return results.map(planet => ({
-        id: planet.id,
-        planetId: planet.planet_id,
-        title: planet.title,
-        description: planet.description,
-        icon: planet.icon,
-        color: planet.color,
-        orderIndex: planet.difficulty_order,
-        isActive: planet.is_active,
-        totalLevels: planet.total_levels,
-        estimatedTime: planet.estimated_time,
-        levelsCount: planet.levels_count,
-        createdAt: planet.created_at,
-        updatedAt: planet.updated_at
-      }));
+      return results.map(planet => {
+        const planetData = {
+          id: planet.id,
+          title: planet.title,
+          description: planet.description,
+          orderIndex: planet.order_index,
+          isActive: planet.is_active,
+          levelsCount: planet.levels_count,
+          createdAt: planet.created_at,
+          updatedAt: planet.updated_at
+        };
+        
+        // Agregar campos opcionales si existen
+        if (planet.planet_id) planetData.planetId = planet.planet_id;
+        if (planet.icon) planetData.icon = planet.icon;
+        if (planet.color) planetData.color = planet.color;
+        if (planet.total_levels) planetData.totalLevels = planet.total_levels;
+        if (planet.estimated_time) planetData.estimatedTime = planet.estimated_time;
+        
+        return planetData;
+      });
     } catch (error) {
       throw error;
     }
@@ -173,7 +179,7 @@ class Planet {
         LEFT JOIN exercises e ON l.id = e.level_id AND e.is_active = 1
         WHERE l.planet_id = ?
         GROUP BY l.id
-        ORDER BY l.level_number ASC
+        ORDER BY l.order_index ASC
       `;
       
       const levelsResults = await sequelize.query(levelsQuery, {
@@ -185,7 +191,7 @@ class Planet {
         id: planet.id,
         title: planet.title,
         description: planet.description,
-        orderIndex: planet.difficulty_order,
+        orderIndex: planet.order_index,
         isActive: planet.is_active,
         createdBy: planet.created_by || null,
         creatorName: null,
@@ -193,11 +199,7 @@ class Planet {
         updatedAt: planet.updated_at,
         levels: levelsResults.map(level => ({
           id: level.id,
-          levelNumber: level.level_number,
           title: level.title,
-          objectives: level.objectives,
-          theoryContent: level.theory_content,
-          examples: level.examples,
           isActive: level.is_active,
           orderIndex: level.order_index,
           exercisesCount: level.exercises_count,
@@ -215,7 +217,7 @@ class Planet {
     try {
       const query = `
         UPDATE planets 
-        SET title = ?, description = ?, difficulty_order = ?, is_active = ?
+        SET title = ?, description = ?, order_index = ?, is_active = ?
         WHERE id = ?
       `;
       
@@ -273,7 +275,7 @@ class Planet {
       try {
         for (const { id, orderIndex } of planetOrders) {
           await sequelize.query(
-            'UPDATE planets SET difficulty_order = ? WHERE id = ?',
+            'UPDATE planets SET order_index = ? WHERE id = ?',
             {
               replacements: [orderIndex, id],
               type: sequelize.QueryTypes.UPDATE,
