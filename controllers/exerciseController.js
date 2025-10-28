@@ -238,9 +238,12 @@ const updateExercise = async (req, res) => {
     
     await exercise.update(updateData);
     
+    // Obtener el ejercicio actualizado
+    const updatedExercise = await Exercise.findById(id);
+    
     res.json({
       success: true,
-      data: exercise,
+      data: updatedExercise,
       message: 'Ejercicio actualizado exitosamente'
     });
   } catch (error) {
