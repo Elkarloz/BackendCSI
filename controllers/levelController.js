@@ -1,27 +1,27 @@
 const Level = require('../models/Level');
 const { sequelize } = require('../config/sequelize');
 
-// Función helper para encontrar el siguiente level number disponible
+// Función helper para encontrar el siguiente order_index disponible
 const findNextAvailableOrderIndex = async (planetId) => {
   try {
-    // Buscar todos los level_number existentes para este planeta (activos e inactivos)
-    const query = 'SELECT DISTINCT level_number FROM levels WHERE planet_id = ? ORDER BY level_number ASC';
+    // Buscar todos los order_index existentes para este planeta (activos e inactivos)
+    const query = 'SELECT DISTINCT order_index FROM levels WHERE planet_id = ? ORDER BY order_index ASC';
     const results = await sequelize.query(query, {
       replacements: [planetId],
       type: sequelize.QueryTypes.SELECT
     });
     
-    console.log('🔍 Level numbers existentes para planeta', planetId, ':', results.map(r => r.level_number));
+    console.log('🔍 Order indexes existentes para planeta', planetId, ':', results.map(r => r.order_index));
     
     // Encontrar el primer número disponible empezando desde 1
     let nextIndex = 1;
-    const existingIndexes = results.map(r => r.level_number);
+    const existingIndexes = results.map(r => r.order_index);
     
     while (existingIndexes.includes(nextIndex)) {
       nextIndex++;
     }
     
-    console.log('✅ Siguiente level number disponible:', nextIndex);
+    console.log('✅ Siguiente order_index disponible:', nextIndex);
     return nextIndex;
   } catch (error) {
     console.error('Error finding next available order index:', error);
