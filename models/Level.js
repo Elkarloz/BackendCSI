@@ -14,16 +14,17 @@ class Level {
   // Crear un nuevo nivel
   static async create({ planetId, title, orderIndex = 1 }) {
     try {
+      // Calcular el level_number basado en el orderIndex
+      // Si orderIndex es 1, level_number será 1, etc.
+      const levelNumber = orderIndex;
+      
       const query = `
-        INSERT INTO levels (planet_id, title, order_index, created_at, updated_at) 
-        VALUES (?, ?, ?, NOW(), NOW())
+        INSERT INTO levels (planet_id, level_number, title, order_index, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, NOW(), NOW())
       `;
       
-      // Generar un level_id único basado en planet_id y timestamp
-      const levelId = `${planetId}-${Date.now()}`;
-      
       const result = await sequelize.query(query, {
-        replacements: [planetId, title, orderIndex],
+        replacements: [planetId, levelNumber, title, orderIndex],
         type: sequelize.QueryTypes.INSERT
       });
       
@@ -59,6 +60,7 @@ class Level {
         id: level.id,
         planetId: level.planet_id,
         planetTitle: level.planet_title,
+        levelNumber: level.level_number,
         title: level.title,
         isActive: level.is_active,
         orderIndex: level.order_index,
@@ -89,6 +91,7 @@ class Level {
         id: level.id,
         planetId: level.planet_id,
         planetTitle: level.planet_title,
+        levelNumber: level.level_number,
         title: level.title,
         isActive: level.is_active,
         orderIndex: level.order_index,
@@ -129,6 +132,7 @@ class Level {
         id: level.id,
         planetId: level.planet_id,
         planetTitle: level.planet_title,
+        levelNumber: level.level_number,
         title: level.title,
         isActive: level.is_active,
         orderIndex: level.order_index,
@@ -179,6 +183,7 @@ class Level {
         id: level.id,
         planetId: level.planet_id,
         planetTitle: level.planet_title,
+        levelNumber: level.level_number,
         title: level.title,
         isActive: level.is_active,
         orderIndex: level.order_index,
@@ -230,6 +235,7 @@ class Level {
         id: level.id,
         planetId: level.planet_id,
         planetTitle: level.planet_title,
+        levelNumber: level.level_number,
         title: level.title,
         isActive: level.is_active,
         orderIndex: level.order_index,

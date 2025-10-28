@@ -98,8 +98,16 @@ const createLevel = async (req, res) => {
       });
     }
     
-    // Validar que el orderIndex no esté duplicado para este planeta
+    // Validar que el orderIndex esté entre 1 y 5 (para level_number)
     const finalOrderIndex = orderIndex || 1;
+    if (finalOrderIndex < 1 || finalOrderIndex > 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'El orden del nivel debe estar entre 1 y 5'
+      });
+    }
+    
+    // Validar que el orderIndex no esté duplicado para este planeta
     const existingLevel = await Level.findByPlanetAndOrderIndex(planetId, finalOrderIndex);
     if (existingLevel) {
       console.log('❌ Backend createLevel - OrderIndex duplicado:', finalOrderIndex, 'usado por nivel:', existingLevel.id);
