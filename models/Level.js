@@ -77,7 +77,7 @@ class Level {
   }
 
 
-  // Buscar nivel por planeta y orderIndex
+  // Buscar nivel por planeta y orderIndex (solo activos para validación de duplicados)
   static async findByPlanetAndOrderIndex(planetId, orderIndex) {
     try {
       const query = 'SELECT * FROM levels WHERE planet_id = ? AND order_index = ? AND is_active = 1';

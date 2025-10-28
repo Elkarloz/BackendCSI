@@ -1,4 +1,22 @@
 const Level = require('../models/Level');
+const { sequelize } = require('../config/sequelize');
+
+// Función helper para encontrar el siguiente orderIndex disponible
+const findNextAvailableOrderIndex = async (planetId) => {
+  try {
+    const query = 'SELECT MAX(order_index) as max_order FROM levels WHERE planet_id = ?';
+    const results = await sequelize.query(query, {
+      replacements: [planetId],
+      type: sequelize.QueryTypes.SELECT
+    });
+    
+    const maxOrder = results[0].max_order || 0;
+    return maxOrder + 1;
+  } catch (error) {
+    console.error('Error finding next available order index:', error);
+    return 1; // Fallback
+  }
+};
 
 // Obtener todos los niveles
 const getAllLevels = async (req, res) => {
@@ -111,17 +129,40 @@ const createLevel = async (req, res) => {
     const existingLevel = await Level.findByPlanetAndOrderIndex(planetId, finalOrderIndex);
     if (existingLevel) {
       console.log('❌ Backend createLevel - OrderIndex duplicado:', finalOrderIndex, 'usado por nivel:', existingLevel.id);
+      
+      // Buscar el siguiente orderIndex disponible
+      const nextAvailableIndex = await findNextAvailableOrderIndex(planetId);
+      
       return res.status(400).json({
         success: false,
-        message: `El orden ${finalOrderIndex} ya está ocupado por otro nivel en este planeta. Por favor, elige un orden diferente.`
+        message: `El orden ${finalOrderIndex} ya está ocupado por otro nivel en este planeta. El siguiente orden disponible es: ${nextAvailableIndex}`,
+        suggestedOrderIndex: nextAvailableIndex
       });
     }
     
-    const level = await Level.create({
-      planetId,
-      title,
-      orderIndex: finalOrderIndex
-    });
+    // Intentar crear el nivel
+    let level;
+    try {
+      level = await Level.create({
+        planetId,
+        title,
+        orderIndex: finalOrderIndex
+      });
+    } catch (error) {
+      // Si falla por constraint único, buscar el siguiente disponible
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        const nextAvailableIndex = await findNextAvailableOrderIndex(planetId);
+        console.log('🔄 Usando siguiente orderIndex disponible:', nextAvailableIndex);
+        
+        level = await Level.create({
+          planetId,
+          title,
+          orderIndex: nextAvailableIndex
+        });
+      } else {
+        throw error;
+      }
+    }
     
     res.status(201).json({
       success: true,
