@@ -98,12 +98,12 @@ const createLevel = async (req, res) => {
       });
     }
     
-    // Validar que el orderIndex esté entre 1 y 5 (para level_number)
+    // Validar que el orderIndex sea válido
     const finalOrderIndex = orderIndex || 1;
-    if (finalOrderIndex < 1 || finalOrderIndex > 5) {
+    if (finalOrderIndex < 1) {
       return res.status(400).json({
         success: false,
-        message: 'El orden del nivel debe estar entre 1 y 5'
+        message: 'El orden del nivel debe ser mayor a 0'
       });
     }
     
