@@ -15,7 +15,7 @@ class Level {
   static async create({ planetId, title, orderIndex = 1 }) {
     try {
       const query = `
-        INSERT INTO levels (planet_id, title, order_index, created_at, updated_at) 
+        INSERT INTO levels (planet_id, title, level_number, created_at, updated_at) 
         VALUES (?, ?, ?, NOW(), NOW())
       `;
       
@@ -67,7 +67,7 @@ class Level {
         planetTitle: level.planet_title,
         title: level.title,
         isActive: level.is_active,
-        orderIndex: level.order_index,
+        orderIndex: level.level_number,
         createdAt: level.created_at,
         updatedAt: level.updated_at
       };
@@ -77,10 +77,10 @@ class Level {
   }
 
 
-  // Buscar nivel por planeta y orderIndex (solo activos para validación de duplicados)
+  // Buscar nivel por planeta y levelNumber (solo activos para validación de duplicados)
   static async findByPlanetAndOrderIndex(planetId, orderIndex) {
     try {
-      const query = 'SELECT * FROM levels WHERE planet_id = ? AND order_index = ? AND is_active = 1';
+      const query = 'SELECT * FROM levels WHERE planet_id = ? AND level_number = ? AND is_active = 1';
       const results = await sequelize.query(query, {
         replacements: [planetId, orderIndex],
         type: sequelize.QueryTypes.SELECT
@@ -97,7 +97,7 @@ class Level {
         planetTitle: level.planet_title,
         title: level.title,
         isActive: level.is_active,
-        orderIndex: level.order_index,
+        orderIndex: level.level_number,
         createdAt: level.created_at,
         updatedAt: level.updated_at
       };
@@ -124,7 +124,7 @@ class Level {
         query += ' AND l.is_active = 1';
       }
       
-      query += ' GROUP BY l.id ORDER BY l.order_index ASC';
+      query += ' GROUP BY l.id ORDER BY l.level_number ASC';
       
       const results = await sequelize.query(query, {
         replacements: params,
@@ -137,7 +137,7 @@ class Level {
         planetTitle: level.planet_title,
         title: level.title,
         isActive: level.is_active,
-        orderIndex: level.order_index,
+        orderIndex: level.level_number,
         exercisesCount: level.exercises_count,
         createdAt: level.created_at,
         updatedAt: level.updated_at
@@ -187,7 +187,7 @@ class Level {
         planetTitle: level.planet_title,
         title: level.title,
         isActive: level.is_active,
-        orderIndex: level.order_index,
+        orderIndex: level.level_number,
         createdAt: level.created_at,
         updatedAt: level.updated_at,
         exercises: exercisesResults.map(exercise => ({
@@ -226,7 +226,7 @@ class Level {
         query += ' WHERE l.is_active = 1';
       }
       
-      query += ' GROUP BY l.id ORDER BY l.order_index ASC';
+      query += ' GROUP BY l.id ORDER BY l.level_number ASC';
       
       const results = await sequelize.query(query, {
         type: sequelize.QueryTypes.SELECT
@@ -238,7 +238,7 @@ class Level {
         planetTitle: level.planet_title,
         title: level.title,
         isActive: level.is_active,
-        orderIndex: level.order_index,
+        orderIndex: level.level_number,
         exercisesCount: level.exercises_count,
         createdAt: level.created_at,
         updatedAt: level.updated_at
@@ -253,7 +253,7 @@ class Level {
     try {
       const query = `
         UPDATE levels 
-        SET title = ?, order_index = ?, is_active = ?
+        SET title = ?, level_number = ?, is_active = ?
         WHERE id = ?
       `;
       
@@ -310,7 +310,7 @@ class Level {
       try {
         for (const { id, orderIndex } of levelOrders) {
           await sequelize.query(
-            'UPDATE levels SET order_index = ? WHERE id = ?',
+            'UPDATE levels SET level_number = ? WHERE id = ?',
             {
               replacements: [orderIndex, id],
               type: sequelize.QueryTypes.UPDATE,

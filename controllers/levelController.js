@@ -1,27 +1,27 @@
 const Level = require('../models/Level');
 const { sequelize } = require('../config/sequelize');
 
-// Función helper para encontrar el siguiente orderIndex disponible
+// Función helper para encontrar el siguiente level number disponible
 const findNextAvailableOrderIndex = async (planetId) => {
   try {
-    // Buscar todos los orderIndex existentes para este planeta (activos e inactivos)
-    const query = 'SELECT DISTINCT order_index FROM levels WHERE planet_id = ? ORDER BY order_index ASC';
+    // Buscar todos los level_number existentes para este planeta (activos e inactivos)
+    const query = 'SELECT DISTINCT level_number FROM levels WHERE planet_id = ? ORDER BY level_number ASC';
     const results = await sequelize.query(query, {
       replacements: [planetId],
       type: sequelize.QueryTypes.SELECT
     });
     
-    console.log('🔍 OrderIndex existentes para planeta', planetId, ':', results.map(r => r.order_index));
+    console.log('🔍 Level numbers existentes para planeta', planetId, ':', results.map(r => r.level_number));
     
     // Encontrar el primer número disponible empezando desde 1
     let nextIndex = 1;
-    const existingIndexes = results.map(r => r.order_index);
+    const existingIndexes = results.map(r => r.level_number);
     
     while (existingIndexes.includes(nextIndex)) {
       nextIndex++;
     }
     
-    console.log('✅ Siguiente orderIndex disponible:', nextIndex);
+    console.log('✅ Siguiente level number disponible:', nextIndex);
     return nextIndex;
   } catch (error) {
     console.error('Error finding next available order index:', error);
@@ -158,7 +158,7 @@ const createLevel = async (req, res) => {
     }
     
     // Validar que el orderIndex sea válido
-    const finalOrderIndex = parseInt(orderIndex) || 1;
+    let finalOrderIndex = parseInt(orderIndex) || 1;
     if (finalOrderIndex < 1) {
       return res.status(400).json({
         success: false,
@@ -172,21 +172,6 @@ const createLevel = async (req, res) => {
       orderIndex: finalOrderIndex 
     });
     
-    // Validar que el orderIndex no esté duplicado para este planeta
-    const existingLevel = await Level.findByPlanetAndOrderIndex(numericPlanetId, finalOrderIndex);
-    if (existingLevel) {
-      console.log('❌ Backend createLevel - OrderIndex duplicado:', finalOrderIndex, 'usado por nivel:', existingLevel.id);
-      
-      // Buscar el siguiente orderIndex disponible
-      const nextAvailableIndex = await findNextAvailableOrderIndex(numericPlanetId);
-      
-      return res.status(400).json({
-        success: false,
-        message: `El orden ${finalOrderIndex} ya está ocupado por otro nivel en este planeta. El siguiente orden disponible es: ${nextAvailableIndex}`,
-        suggestedOrderIndex: nextAvailableIndex
-      });
-    }
-    
     // Intentar crear el nivel con manejo inteligente de duplicados
     let level;
     let attempts = 0;
@@ -199,6 +184,19 @@ const createLevel = async (req, res) => {
           title,
           orderIndex: finalOrderIndex
         });
+        
+        // Verificar si el orderIndex ya existe antes de crear
+        const existingLevel = await Level.findByPlanetAndOrderIndex(numericPlanetId, finalOrderIndex);
+        if (existingLevel) {
+          console.log('❌ Level number duplicado:', finalOrderIndex, 'usado por nivel:', existingLevel.id);
+          
+          // Buscar el siguiente orderIndex disponible
+          const nextAvailableIndex = await findNextAvailableOrderIndex(numericPlanetId);
+          console.log(`🔄 Usando siguiente level number disponible:`, nextAvailableIndex);
+          finalOrderIndex = nextAvailableIndex;
+          attempts++;
+          continue;
+        }
         
         level = await Level.create({
           planetId: numericPlanetId,
@@ -218,7 +216,7 @@ const createLevel = async (req, res) => {
           if (attempts < maxAttempts) {
             // Buscar el siguiente orderIndex disponible
             const nextAvailableIndex = await findNextAvailableOrderIndex(numericPlanetId);
-            console.log(`🔄 Intento ${attempts + 1} - Usando orderIndex:`, nextAvailableIndex);
+            console.log(`🔄 Usando siguiente level number disponible:`, nextAvailableIndex);
             finalOrderIndex = nextAvailableIndex;
           } else {
             console.error('❌ Máximo de intentos alcanzado');
@@ -284,7 +282,7 @@ const updateLevel = async (req, res) => {
     if (orderIndex) {
       const existingLevel = await Level.findByPlanetAndOrderIndex(level.planetId, orderIndex);
       if (existingLevel && String(existingLevel.id) !== String(id)) {
-        console.log('❌ Backend updateLevel - OrderIndex duplicado:', orderIndex, 'usado por nivel:', existingLevel.id);
+        console.log('❌ Backend updateLevel - Level number duplicado:', orderIndex, 'usado por nivel:', existingLevel.id);
         return res.status(400).json({
           success: false,
           message: `El orden ${orderIndex} ya está ocupado por otro nivel en este planeta. Por favor, elige un orden diferente.`
