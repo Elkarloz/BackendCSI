@@ -27,9 +27,15 @@ class Level {
         replacements: [planetId, levelNumber, title, orderIndex],
         type: sequelize.QueryTypes.INSERT
       });
-      
+      // result puede variar según el dialecto; en MySQL debe contener insertId
+      const raw = Array.isArray(result) ? result[0] : result;
+      const insertedId = (raw && typeof raw === 'object') ? (raw.insertId ?? raw.id ?? raw) : raw;
+      // Fallback defensivo si no se detecta correctamente
+      if (!insertedId) {
+        console.log('⚠️ Level.create - INSERT result inesperado:', JSON.stringify(result));
+      }
       // Obtener el nivel creado usando el ID generado
-      const newLevel = await Level.findById(result[0]);
+      const newLevel = await Level.findById(insertedId);
       return newLevel;
     } catch (error) {
       throw error;
