@@ -12,6 +12,7 @@ router.get('/:id/stats', levelController.getLevelStats);
 
 // Rutas que requieren autenticación y permisos de admin
 // Temporalmente sin autenticación para debugging en producción
+router.post('/test', levelController.testCreateLevel);
 router.post('/', levelController.createLevel);
 
 router.put('/:id', authenticateToken, (req, res, next) => {

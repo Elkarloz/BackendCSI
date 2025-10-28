@@ -4,14 +4,25 @@ const { sequelize } = require('../config/sequelize');
 // Función helper para encontrar el siguiente orderIndex disponible
 const findNextAvailableOrderIndex = async (planetId) => {
   try {
-    const query = 'SELECT MAX(order_index) as max_order FROM levels WHERE planet_id = ?';
+    // Buscar todos los orderIndex existentes para este planeta (activos e inactivos)
+    const query = 'SELECT DISTINCT order_index FROM levels WHERE planet_id = ? ORDER BY order_index ASC';
     const results = await sequelize.query(query, {
       replacements: [planetId],
       type: sequelize.QueryTypes.SELECT
     });
     
-    const maxOrder = results[0].max_order || 0;
-    return maxOrder + 1;
+    console.log('🔍 OrderIndex existentes para planeta', planetId, ':', results.map(r => r.order_index));
+    
+    // Encontrar el primer número disponible empezando desde 1
+    let nextIndex = 1;
+    const existingIndexes = results.map(r => r.order_index);
+    
+    while (existingIndexes.includes(nextIndex)) {
+      nextIndex++;
+    }
+    
+    console.log('✅ Siguiente orderIndex disponible:', nextIndex);
+    return nextIndex;
   } catch (error) {
     console.error('Error finding next available order index:', error);
     return 1; // Fallback
@@ -101,6 +112,27 @@ const getLevelWithExercises = async (req, res) => {
   }
 };
 
+// Endpoint de prueba para debugging
+const testCreateLevel = async (req, res) => {
+  try {
+    console.log('🧪 Test endpoint - Datos recibidos:', req.body);
+    console.log('🧪 Test endpoint - Headers:', req.headers);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Test endpoint funcionando',
+      receivedData: req.body
+    });
+  } catch (error) {
+    console.error('❌ Test endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error en test endpoint',
+      error: error.message
+    });
+  }
+};
+
 // Crear nuevo nivel
 const createLevel = async (req, res) => {
   try {
@@ -116,8 +148,17 @@ const createLevel = async (req, res) => {
       });
     }
     
+    // Convertir planetId a número si viene como string
+    const numericPlanetId = parseInt(planetId);
+    if (isNaN(numericPlanetId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID del planeta debe ser un número válido'
+      });
+    }
+    
     // Validar que el orderIndex sea válido
-    const finalOrderIndex = orderIndex || 1;
+    const finalOrderIndex = parseInt(orderIndex) || 1;
     if (finalOrderIndex < 1) {
       return res.status(400).json({
         success: false,
@@ -125,13 +166,19 @@ const createLevel = async (req, res) => {
       });
     }
     
+    console.log('📚 Backend createLevel - Datos procesados:', { 
+      planetId: numericPlanetId, 
+      title, 
+      orderIndex: finalOrderIndex 
+    });
+    
     // Validar que el orderIndex no esté duplicado para este planeta
-    const existingLevel = await Level.findByPlanetAndOrderIndex(planetId, finalOrderIndex);
+    const existingLevel = await Level.findByPlanetAndOrderIndex(numericPlanetId, finalOrderIndex);
     if (existingLevel) {
       console.log('❌ Backend createLevel - OrderIndex duplicado:', finalOrderIndex, 'usado por nivel:', existingLevel.id);
       
       // Buscar el siguiente orderIndex disponible
-      const nextAvailableIndex = await findNextAvailableOrderIndex(planetId);
+      const nextAvailableIndex = await findNextAvailableOrderIndex(numericPlanetId);
       
       return res.status(400).json({
         success: false,
@@ -140,27 +187,47 @@ const createLevel = async (req, res) => {
       });
     }
     
-    // Intentar crear el nivel
+    // Intentar crear el nivel con manejo inteligente de duplicados
     let level;
-    try {
-      level = await Level.create({
-        planetId,
-        title,
-        orderIndex: finalOrderIndex
-      });
-    } catch (error) {
-      // Si falla por constraint único, buscar el siguiente disponible
-      if (error.name === 'SequelizeUniqueConstraintError') {
-        const nextAvailableIndex = await findNextAvailableOrderIndex(planetId);
-        console.log('🔄 Usando siguiente orderIndex disponible:', nextAvailableIndex);
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    while (attempts < maxAttempts) {
+      try {
+        console.log(`🔄 Intento ${attempts + 1} - Creando nivel con datos:`, {
+          planetId: numericPlanetId,
+          title,
+          orderIndex: finalOrderIndex
+        });
         
         level = await Level.create({
-          planetId,
+          planetId: numericPlanetId,
           title,
-          orderIndex: nextAvailableIndex
+          orderIndex: finalOrderIndex
         });
-      } else {
-        throw error;
+        
+        console.log('✅ Nivel creado exitosamente:', level);
+        break; // Éxito, salir del bucle
+        
+      } catch (error) {
+        console.error(`❌ Intento ${attempts + 1} falló:`, error.name, error.message);
+        
+        if (error.name === 'SequelizeUniqueConstraintError') {
+          attempts++;
+          
+          if (attempts < maxAttempts) {
+            // Buscar el siguiente orderIndex disponible
+            const nextAvailableIndex = await findNextAvailableOrderIndex(numericPlanetId);
+            console.log(`🔄 Intento ${attempts + 1} - Usando orderIndex:`, nextAvailableIndex);
+            finalOrderIndex = nextAvailableIndex;
+          } else {
+            console.error('❌ Máximo de intentos alcanzado');
+            throw new Error('No se pudo crear el nivel después de múltiples intentos');
+          }
+        } else {
+          // Error diferente al constraint único, lanzar inmediatamente
+          throw error;
+        }
       }
     }
     
@@ -171,6 +238,24 @@ const createLevel = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al crear nivel:', error);
+    
+    // Manejar errores específicos
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Ya existe un nivel con este orden en este planeta',
+        error: error.message
+      });
+    }
+    
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Datos de validación incorrectos',
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',
@@ -417,6 +502,7 @@ module.exports = {
   getAllLevels,
   getLevelById,
   getLevelWithExercises,
+  testCreateLevel,
   createLevel,
   updateLevel,
   deleteLevel,
