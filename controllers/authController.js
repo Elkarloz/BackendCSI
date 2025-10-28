@@ -34,7 +34,7 @@ const register = async (req, res) => {
     const newUser = await User.createUser({ email, password, name });
 
     // Generar token JWT
-    const token = generateToken(newUser.id);
+    const token = generateToken(newUser);
 
     res.status(201).json({
       success: true,
