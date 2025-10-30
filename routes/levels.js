@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const levelController = require('../controllers/levelController');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, optionalAuth } = require('../middleware/auth');
 
 // Rutas públicas (no requieren autenticación)
 router.get('/', levelController.getAllLevels);
+router.get('/with-unlock-status', optionalAuth, levelController.getLevelsWithUnlockStatus);
 router.get('/count', levelController.getLevelsCount);
 router.get('/:id', levelController.getLevelById);
 router.get('/:id/exercises', levelController.getLevelWithExercises);

@@ -59,12 +59,12 @@ class StudentProgress {
   static async findByUser(userId) {
     try {
       const query = `
-        SELECT sp.*, l.level_number, l.title as level_title, p.title as planet_title
+        SELECT sp.*, l.order_index as level_number, l.title as level_title, p.title as planet_title
         FROM student_progress sp
         JOIN levels l ON sp.level_id = l.id
         JOIN planets p ON l.planet_id = p.id
         WHERE sp.user_id = ?
-        ORDER BY p.order_index, l.level_number
+        ORDER BY p.order_index, l.order_index
       `;
       
       const results = await sequelize.query(query, {
@@ -193,13 +193,13 @@ class StudentProgress {
   static async getUnlockedLevels(userId) {
     try {
       const query = `
-        SELECT DISTINCT l.id, l.level_number, l.planet_id, p.title as planet_title
+        SELECT DISTINCT l.id, l.order_index as level_number, l.planet_id, p.title as planet_title, p.order_index as planet_order_index
         FROM levels l
         JOIN planets p ON l.planet_id = p.id
         WHERE l.is_active = 1 
         AND (
           -- Primer nivel del primer planeta siempre desbloqueado
-          (p.id = 1 AND l.level_number = 1)
+          (p.order_index = (SELECT MIN(order_index) FROM planets WHERE is_active = 1) AND l.order_index = 1)
           OR
           -- Nivel completado desbloquea el siguiente nivel del mismo planeta
           EXISTS (
@@ -208,23 +208,24 @@ class StudentProgress {
             WHERE sp2.user_id = ? 
             AND sp2.is_completed = 1 
             AND l2.planet_id = l.planet_id 
-            AND l2.level_number = l.level_number - 1
+            AND l2.order_index = l.order_index - 1
           )
           OR
           -- Planeta completado desbloquea el primer nivel del siguiente planeta
           (
-            l.level_number = 1 
+            l.order_index = 1 
             AND EXISTS (
               SELECT 1 FROM student_progress sp3 
               JOIN levels l3 ON sp3.level_id = l3.id 
+              JOIN planets p3 ON l3.planet_id = p3.id
               WHERE sp3.user_id = ? 
               AND sp3.is_completed = 1 
-              AND l3.planet_id = p.id - 1
-              AND l3.level_number = 5
+              AND p3.order_index = (SELECT order_index FROM planets WHERE id = p.id) - 1
+              AND l3.order_index = (SELECT MAX(order_index) FROM levels WHERE planet_id = p3.id AND is_active = 1)
             )
           )
         )
-        ORDER BY p.order_index, l.level_number
+        ORDER BY p.order_index, l.order_index
       `;
       
       const results = await sequelize.query(query, {
@@ -238,6 +239,72 @@ class StudentProgress {
     }
   }
 
+  // Guardar respuesta de ejercicio (actualiza acumulados del progreso)
+  static async saveExerciseResponse({ userId, levelId, exerciseId, respuesta, esCorrecta, puntuacion = 0, tiempoGastado = 0 }) {
+    try {
+      // Asegurar registro y actualizar acumulados
+      const query = `
+        INSERT INTO student_progress 
+        (user_id, level_id, total_exercises, completed_exercises, score, time_spent, last_accessed)
+        VALUES (?, ?, 1, ?, ?, ?, NOW())
+        ON DUPLICATE KEY UPDATE
+        total_exercises = total_exercises + 1,
+        completed_exercises = completed_exercises + VALUES(completed_exercises),
+        score = GREATEST(score, VALUES(score)),
+        time_spent = time_spent + VALUES(time_spent),
+        last_accessed = NOW()
+      `;
+      await sequelize.query(query, {
+        replacements: [userId, levelId, esCorrecta ? 1 : 0, puntuacion, tiempoGastado],
+        type: sequelize.QueryTypes.INSERT
+      });
+
+      // Recalcular porcentaje de completitud basado en ejercicios respondidos vs total en el nivel
+      const [{ total_level_exercises }] = await sequelize.query(
+        'SELECT COUNT(*) as total_level_exercises FROM exercises WHERE level_id = ? AND is_active = 1',
+        { replacements: [levelId], type: sequelize.QueryTypes.SELECT }
+      );
+
+      // Obtener conteos actuales
+      const [{ answered_exercises, correct_exercises }] = await sequelize.query(
+        'SELECT total_exercises as answered_exercises, completed_exercises as correct_exercises FROM student_progress WHERE user_id = ? AND level_id = ? LIMIT 1',
+        { replacements: [userId, levelId], type: sequelize.QueryTypes.SELECT }
+      );
+
+      const totalLevel = parseInt(total_level_exercises || 0);
+      const answered = parseInt(answered_exercises || 0);
+      const completionPercentage = totalLevel > 0 ? Math.min(100, (answered / totalLevel) * 100) : 0;
+      const isCompleted = totalLevel > 0 && answered >= totalLevel ? 1 : 0;
+
+      await sequelize.query(
+        `UPDATE student_progress 
+         SET completion_percentage = ?, is_completed = GREATEST(is_completed, ?), completed_at = CASE WHEN is_completed = 0 AND ? = 1 THEN NOW() ELSE completed_at END
+         WHERE user_id = ? AND level_id = ?`,
+        {
+          replacements: [completionPercentage, isCompleted, isCompleted, userId, levelId],
+          type: sequelize.QueryTypes.UPDATE
+        }
+      );
+
+      const progreso = await StudentProgress.findByUserAndLevel(userId, levelId);
+
+      return {
+        progreso: progreso ? progreso.toObject() : null,
+        respuesta: {
+          userId,
+          levelId,
+          exerciseId,
+          respuesta,
+          esCorrecta,
+          puntuacion,
+          tiempoGastado
+        }
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Método para obtener datos del progreso
   toObject() {
     return {
@@ -246,8 +313,9 @@ class StudentProgress {
       levelId: this.levelId,
       isCompleted: this.isCompleted,
       completionPercentage: this.completionPercentage,
-      totalExercises: this.totalExercises,
-      completedExercises: this.completedExercises,
+      totalExercises: this.totalExercises, // answered exercises
+      completedExercises: this.completedExercises, // correct answers
+      wrongAnswers: Math.max(0, (this.totalExercises || 0) - (this.completedExercises || 0)),
       score: this.score,
       timeSpent: this.timeSpent,
       lastAccessed: this.lastAccessed,

@@ -83,7 +83,6 @@ const createPlanet = async (req, res) => {
     const { title, description, orderIndex } = req.body;
     const createdBy = req.user.id; // Asumiendo que el middleware de auth establece req.user
     
-    console.log('🪐 Backend createPlanet - Datos recibidos:', { title, description, orderIndex });
     
     // Validaciones
     if (!title) {
@@ -93,11 +92,11 @@ const createPlanet = async (req, res) => {
       });
     }
     
-    // Validar que el orderIndex no esté duplicado
+    // Validar que el orden no esté duplicado
     const finalOrderIndex = orderIndex || 1;
     const existingPlanet = await Planet.findByOrderIndex(finalOrderIndex);
     if (existingPlanet) {
-      console.log('❌ Backend createPlanet - OrderIndex duplicado:', finalOrderIndex, 'usado por planeta:', existingPlanet.id);
+      console.log('❌ Backend createPlanet - Orden duplicado:', finalOrden, 'usado por planeta:', existingPlanet.id);
       return res.status(400).json({
         success: false,
         message: `El orden ${finalOrderIndex} ya está ocupado por otro planeta. Por favor, elige un orden diferente.`
@@ -142,11 +141,11 @@ const updatePlanet = async (req, res) => {
       });
     }
     
-    // Validar que el orderIndex no esté duplicado (excepto para el mismo planeta)
+    // Validar que el orden no esté duplicado (excepto para el mismo planeta)
     if (orderIndex) {
       const existingPlanet = await Planet.findByOrderIndex(orderIndex);
       if (existingPlanet && String(existingPlanet.id) !== String(id)) {
-        console.log('❌ Backend updatePlanet - OrderIndex duplicado:', orderIndex, 'usado por planeta:', existingPlanet.id);
+        console.log('❌ Backend updatePlanet - Orden duplicado:', orderIndex, 'usado por planeta:', existingPlanet.id);
         return res.status(400).json({
           success: false,
           message: `El orden ${orderIndex} ya está ocupado por otro planeta. Por favor, elige un orden diferente.`

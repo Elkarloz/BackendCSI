@@ -5,7 +5,11 @@ const contentRoutes = require('./content');
 const planetRoutes = require('./planets');
 const levelRoutes = require('./levels');
 const exerciseRoutes = require('./exercises');
+const achievementRoutes = require('./achievements');
 const studentProgressRoutes = require('./studentProgress');
+const progressRoutes = require('./progress');
+const progresoEstudianteRoutes = require('./progresoEstudiante');
+const reportRoutes = require('./reports');
 
 const router = express.Router();
 
@@ -23,6 +27,12 @@ router.use('/planets', planetRoutes);
 router.use('/levels', levelRoutes);
 router.use('/exercises', exerciseRoutes);
 router.use('/progress', studentProgressRoutes);
+router.use('/progreso', progresoEstudianteRoutes);
+router.use('/achievements', achievementRoutes);
+// New flat endpoints mounted at API root
+router.use('/', progressRoutes);
+// Report routes
+router.use('/reports', reportRoutes);
 
 // Ruta de bienvenida
 router.get('/', (req, res) => {
@@ -100,6 +110,32 @@ router.get('/', (req, res) => {
         markLevelCompleted: 'POST /api/progress/user/:userId/level/:levelId/complete',
         getUnlockedLevels: 'GET /api/progress/user/:userId/unlocked',
         getUserStats: 'GET /api/progress/user/:userId/stats'
+      },
+      progreso: {
+        // Progreso general
+        getUserProgress: 'GET /api/progreso/usuario/:idUsuario',
+        getLevelProgress: 'GET /api/progreso/usuario/:idUsuario/nivel/:idNivel',
+        getPlanetProgress: 'GET /api/progreso/usuario/:idUsuario/planeta/:idPlaneta',
+        getCompleteProgressSummary: 'GET /api/progreso/usuario/:idUsuario/resumen-completo',
+        
+        // Actualización de progreso
+        updateLevelProgress: 'PUT /api/progreso/usuario/:idUsuario/nivel/:idNivel',
+        markLevelCompleted: 'POST /api/progreso/usuario/:idUsuario/nivel/:idNivel/completar',
+        saveExerciseResponse: 'POST /api/progreso/usuario/:idUsuario/nivel/:idNivel/ejercicio',
+        
+        // Estadísticas y análisis
+        getProgressStats: 'GET /api/progreso/usuario/:idUsuario/estadisticas',
+        getResponseStats: 'GET /api/progreso/usuario/:idUsuario/estadisticas-respuestas',
+        getUserAchievements: 'GET /api/progreso/usuario/:idUsuario/logros',
+        
+        // Niveles y desbloqueo
+        getUnlockedLevels: 'GET /api/progreso/usuario/:idUsuario/niveles-desbloqueados',
+        getNextUnlockableLevels: 'GET /api/progreso/usuario/:idUsuario/proximos-niveles',
+        canAnswerExercise: 'GET /api/progreso/usuario/:idUsuario/ejercicio/:idEjercicio/puede-responder',
+        
+        // Respuestas del usuario
+        getUserResponses: 'GET /api/progreso/usuario/:idUsuario/respuestas',
+        getUserResponsesByLevel: 'GET /api/progreso/usuario/:idUsuario/nivel/:idNivel/respuestas'
       }
     }
   });

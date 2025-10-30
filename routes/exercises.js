@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const exerciseController = require('../controllers/exerciseController');
+const { submitExerciseAlias } = require('../controllers/progressController');
 const { authenticateToken } = require('../middleware/auth');
 
 // Rutas públicas (no requieren autenticación)
@@ -12,6 +13,10 @@ router.get('/level/:levelId', exerciseController.getExercisesByLevel);
 
 // Ruta para evaluar ejercicio (requiere autenticación pero disponible para estudiantes y admins)
 router.post('/:id/evaluate', authenticateToken, exerciseController.evaluateExercise);
+
+// Submit and persist attempt (also updates progress)
+router.post('/:id/submit', authenticateToken, submitExerciseAlias);
+router.post('/submit', authenticateToken, submitExerciseAlias);
 
 // Rutas que requieren autenticación y permisos de admin
 // Temporalmente sin autenticación para debugging en producción

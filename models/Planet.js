@@ -18,14 +18,13 @@ class Planet {
       // Generar un planet_id único
       const planetId = `planet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date();
-      
       const query = `
-        INSERT INTO planets (title, description, order_index, is_active, created_at, updated_at) 
-        VALUES (?, ?, ?, 1, ?, ?)
+        INSERT INTO planets (planet_id, title, description, order_index, is_active, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, 1, ?, ?)
       `;
       
       const result = await sequelize.query(query, {
-        replacements: [title, description || null, orderIndex, now, now],
+        replacements: [planetId, title, description || null, orderIndex, now, now],
         type: sequelize.QueryTypes.INSERT
       });
       
@@ -62,7 +61,7 @@ class Planet {
         planet.description,
         planet.order_index,
         planet.is_active,
-        null, // created_by no existe en la tabla
+        null,
         planet.created_at,
         planet.updated_at
       );
@@ -71,7 +70,7 @@ class Planet {
     }
   }
 
-  // Buscar planeta por orderIndex
+  // Buscar planeta por orden
   static async findByOrderIndex(orderIndex) {
     try {
       const query = `
@@ -96,7 +95,7 @@ class Planet {
         planet.description,
         planet.order_index,
         planet.is_active,
-        null, // created_by no existe en la tabla
+        null,
         planet.created_at,
         planet.updated_at
       );
@@ -118,7 +117,6 @@ class Planet {
       if (!includeInactive) {
         query += ' WHERE p.is_active = 1';
       }
-      
       query += ' GROUP BY p.id ORDER BY p.order_index ASC, p.created_at ASC';
       
       const results = await sequelize.query(query, {
@@ -130,11 +128,11 @@ class Planet {
           id: planet.id,
           title: planet.title,
           description: planet.description,
-          orderIndex: planet.order_index,
-          isActive: planet.is_active,
+          order_index: planet.order_index,
+          is_active: planet.is_active,
           levelsCount: planet.levels_count,
-          createdAt: planet.created_at,
-          updatedAt: planet.updated_at
+          created_at: planet.created_at,
+          updated_at: planet.updated_at
         };
         
         // Agregar campos opcionales si existen
@@ -191,20 +189,20 @@ class Planet {
         id: planet.id,
         title: planet.title,
         description: planet.description,
-        orderIndex: planet.order_index,
-        isActive: planet.is_active,
+        order_index: planet.order_index,
+        is_active: planet.is_active,
         createdBy: planet.created_by || null,
         creatorName: null,
-        createdAt: planet.created_at,
-        updatedAt: planet.updated_at,
+        created_at: planet.created_at,
+        updated_at: planet.updated_at,
         levels: levelsResults.map(level => ({
           id: level.id,
           title: level.title,
-          isActive: level.is_active,
-          orderIndex: level.order_index,
-          exercisesCount: level.exercises_count,
-          createdAt: level.created_at,
-          updatedAt: level.updated_at
+          is_active: level.is_active,
+          order_index: level.order_index,
+          exercises_count: level.exercises_count,
+          created_at: level.created_at,
+          updated_at: level.updated_at
         }))
       };
     } catch (error) {

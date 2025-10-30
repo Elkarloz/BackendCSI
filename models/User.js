@@ -18,19 +18,23 @@ const User = sequelize.define('User', {
   },
   password: {
     type: DataTypes.STRING(255),
-    allowNull: false
+    allowNull: false,
+    field: 'password'
   },
   name: {
     type: DataTypes.STRING(255),
-    allowNull: false
+    allowNull: false,
+    field: 'name'
   },
   role: {
     type: DataTypes.ENUM('estudiante', 'admin'),
-    defaultValue: 'estudiante'
+    defaultValue: 'estudiante',
+    field: 'role'
   },
   isActive: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true
+    defaultValue: true,
+    field: 'isActive'
   }
 }, {
   tableName: 'users',
@@ -45,7 +49,7 @@ const User = sequelize.define('User', {
   ]
 });
 
-// Métodos de instancia
+// Instance methods
 User.prototype.toSafeObject = function() {
   return {
     id: this.id,
@@ -57,7 +61,7 @@ User.prototype.toSafeObject = function() {
   };
 };
 
-// Métodos estáticos
+// Static methods
 User.createUser = async function({ email, password, name, role = 'estudiante' }) {
   try {
     // Verificar si el usuario ya existe
@@ -86,7 +90,7 @@ User.createUser = async function({ email, password, name, role = 'estudiante' })
 
 User.findById = async function(id) {
   try {
-    const user = await this.findByPk(id, {
+  const user = await this.findByPk(id, {
       attributes: ['id', 'email', 'name', 'role', 'isActive', 'created_at']
     });
     
@@ -102,7 +106,7 @@ User.findById = async function(id) {
 
 User.findByEmail = async function(email) {
   try {
-    console.log('🔍 User.findByEmail() - Buscando email:', email);
+  console.log('🔍 User.findByEmail() - Buscando email:', email);
     
     const user = await this.findOne({
       where: { email },
@@ -150,8 +154,8 @@ User.validatePassword = async function(plainPassword, hashedPassword) {
 User.getAllUsers = async function() {
   try {
     const users = await User.findAll({
-      attributes: ['id', 'email', 'name', 'role', 'isActive', 'created_at'],
-      order: [['created_at', 'DESC']]
+      attributes: ['id', 'email', 'nombre', 'rol', 'activo', 'fecha_creacion'],
+      order: [['fecha_creacion', 'DESC']]
     });
     
     return users;

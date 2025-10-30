@@ -96,7 +96,7 @@ const login = async (req, res) => {
       });
     }
 
-    console.log('✅ Usuario encontrado:', { id: user.id, email: user.email, name: user.name });
+    console.log('✅ Usuario encontrado:', { id: user.id, email: user.email, nombre: user.nombre });
 
     // Validar contraseña
     console.log('🔐 Validando contraseña...');

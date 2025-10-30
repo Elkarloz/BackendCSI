@@ -68,16 +68,15 @@ class Level {
         title: level.title,
         isActive: level.is_active,
         orderIndex: level.order_index,
-        createdAt: level.created_at,
-        updatedAt: level.updated_at
+        created_at: level.created_at,
+        updated_at: level.updated_at
       };
     } catch (error) {
       throw error;
     }
   }
 
-
-  // Buscar nivel por planeta y levelNumber (solo activos para validación de duplicados)
+  // Buscar nivel por planeta y orden (solo activos para validación de duplicados)
   static async findByPlanetAndOrderIndex(planetId, orderIndex) {
     try {
       const query = 'SELECT * FROM levels WHERE planet_id = ? AND order_index = ? AND is_active = 1';
@@ -98,8 +97,8 @@ class Level {
         title: level.title,
         isActive: level.is_active,
         orderIndex: level.order_index,
-        createdAt: level.created_at,
-        updatedAt: level.updated_at
+        created_at: level.created_at,
+        updated_at: level.updated_at
       };
     } catch (error) {
       throw error;
@@ -139,8 +138,8 @@ class Level {
         isActive: level.is_active,
         orderIndex: level.order_index,
         exercisesCount: level.exercises_count,
-        createdAt: level.created_at,
-        updatedAt: level.updated_at
+        created_at: level.created_at,
+        updated_at: level.updated_at
       }));
     } catch (error) {
       throw error;
@@ -188,22 +187,19 @@ class Level {
         title: level.title,
         isActive: level.is_active,
         orderIndex: level.order_index,
-        createdAt: level.created_at,
-        updatedAt: level.updated_at,
+        created_at: level.created_at,
+        updated_at: level.updated_at,
         exercises: exercisesResults.map(exercise => ({
           id: exercise.id,
-          exerciseId: exercise.exercise_id,
+          levelId: exercise.level_id,
           type: exercise.type,
-          statement: exercise.statement,
-          solution: exercise.solution,
-          tolerance: exercise.tolerance,
-          hints: exercise.hints,
-          evaluationCriteria: exercise.evaluation_criteria,
-          assets: exercise.assets,
-          isActive: exercise.is_active,
-          orderIndex: exercise.order_index,
-          createdAt: exercise.created_at,
-          updatedAt: exercise.updated_at
+          question: exercise.question,
+          explanation: exercise.explanation,
+          points: exercise.points,
+          is_active: exercise.is_active,
+          order_index: exercise.order_index,
+          created_at: exercise.created_at,
+          updated_at: exercise.updated_at
         }))
       };
     } catch (error) {
@@ -240,8 +236,8 @@ class Level {
         isActive: level.is_active,
         orderIndex: level.order_index,
         exercisesCount: level.exercises_count,
-        createdAt: level.created_at,
-        updatedAt: level.updated_at
+        created_at: level.created_at,
+        updated_at: level.updated_at
       }));
     } catch (error) {
       throw error;
